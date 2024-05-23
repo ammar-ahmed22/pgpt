@@ -4,6 +4,7 @@ pub mod encryption;
 use reqwest::blocking::{ Client, Response };
 use reqwest::header::{ HeaderMap, HeaderValue, CONTENT_TYPE, USER_AGENT, AUTHORIZATION };
 use serde::Deserialize;
+use colored::*;
 
 const COMPLETION_URL: &'static str = "https://api.openai.com/v1/chat/completions";
 
@@ -41,6 +42,7 @@ pub struct Usage {
   total_tokens: i32,
 }
 
+/// Creates the HTTP request client
 fn create_client(api_key: &str) -> anyhow::Result<Client> {
   let auth_val = format!("Bearer {}", api_key);
   let mut headers = HeaderMap::new();
@@ -84,10 +86,13 @@ fn calculate_cost(model: &config::Model, usage: &Usage) -> f64 {
   return cost;
 }
 
+/// Runs the CLI
 pub fn run(args: &config::CLIArgs, config: &config::Config) -> anyhow::Result<()> {
   let response = query_gpt(args, config)?;
   println!("{}", response.choices[0].message.content);
   println!("");
-  println!("Cost: ${}", calculate_cost(&args.model, &response.usage));
+  if args.cost {
+    println!("{}: ${:.6}", "Cost".green(), calculate_cost(&args.model, &response.usage));
+  }
   Ok(())
 }

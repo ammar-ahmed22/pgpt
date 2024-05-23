@@ -66,7 +66,11 @@ struct Args {
 
   /// Remove local config including OpenAI API key
   #[arg(long)]
-  clear: bool
+  clear: bool,
+
+  /// Display the total cost for the prompt and response
+  #[arg(long)]
+  cost: bool
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -74,6 +78,7 @@ pub struct CLIArgs {
   pub model: Model,
   pub clear: bool,
   pub query: String,
+  pub cost: bool
 }
 
 #[derive(Debug)]
@@ -102,6 +107,7 @@ impl Config {
       model,
       query,
       clear: args.clear,
+      cost: args.cost,
     }
   }
 
