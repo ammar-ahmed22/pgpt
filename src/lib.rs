@@ -9,6 +9,8 @@ use colored::*;
 use indicatif::{ ProgressBar, ProgressStyle };
 use std::sync::Arc;
 use rand::Rng;
+use termimad::{ MadSkin, rgb };
+use termimad::crossterm::style::Color::*;
 
 const COMPLETION_URL: &'static str = "https://api.openai.com/v1/chat/completions";
 const LOADING_MESSAGES: [&'static str; 10] = [
@@ -118,10 +120,19 @@ fn create_spinner() -> anyhow::Result<ProgressBar> {
   spinner.set_message(rand_msg);
   Ok(spinner)
 }
+
+fn create_skin() -> MadSkin {
+  let mut skin = MadSkin::default();
+  skin.bold.set_fg(Yellow);
+  skin.italic.set_fgbg(Yellow, rgb(30, 30, 40));
+
+  return skin;
+}
  
 /// Runs the CLI
 pub fn run(args: Arc<config::CLIArgs>, config: Arc<config::Config>) -> anyhow::Result<()> {
   let spinner = create_spinner()?;
+  let skin = create_skin();
   let args_clone = Arc::clone(&args);
   let config_clone = Arc::clone(&config);
   let handle = std::thread::spawn(move || {
@@ -141,7 +152,7 @@ pub fn run(args: Arc<config::CLIArgs>, config: Arc<config::Config>) -> anyhow::R
       // println!("response...");
       println!("{}", format!("Response from {}", args.model.api_model().magenta()).cyan());
       println!("");
-      println!("{}", response.choices[0].message.content);
+      println!("{}", skin.term_text(response.choices[0].message.content.as_str()));
       println!("");
       if args.cost {
         println!("{}: ${:.6}", "Cost".green(), calculate_cost(&args.model, &response.usage));
