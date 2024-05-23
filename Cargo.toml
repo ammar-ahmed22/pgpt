@@ -11,7 +11,9 @@ clap = { version = "4.5.4", features = ["derive"] }
 colored = "2.1.0"
 directories = "5.0.1"
 getrandom = "0.2.15"
+indicatif = "0.17.8"
 orion = "0.17.6"
+rand = "0.8.5"
 reqwest = { version = "0.12.4", features = ["json", "blocking"] }
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = "1.0.117"

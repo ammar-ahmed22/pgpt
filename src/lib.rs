@@ -1,12 +1,29 @@
 pub mod config;
 pub mod encryption;
 
+use anyhow::Context;
 use reqwest::blocking::{ Client, Response };
 use reqwest::header::{ HeaderMap, HeaderValue, CONTENT_TYPE, USER_AGENT, AUTHORIZATION };
 use serde::Deserialize;
 use colored::*;
+use indicatif::{ ProgressBar, ProgressStyle };
+use std::sync::Arc;
+use rand::Rng;
 
 const COMPLETION_URL: &'static str = "https://api.openai.com/v1/chat/completions";
+const LOADING_MESSAGES: [&'static str; 10] = [
+  "Consulting neural network...",
+  "Bribing data set...",
+  "Thinking hard...",
+  "Crunching 0s and 1s...",
+  "Cooking up a response...",
+  "AI is thinking...",
+  "Turning AI gears...",
+  "Consulting the AI crystal...",
+  "Praying for your answer...",
+  "Circuits tingling..."
+];
+
 
 #[derive(Deserialize, Debug)]
 #[allow(unused)]
@@ -56,7 +73,7 @@ fn create_client(api_key: &str) -> anyhow::Result<Client> {
 }
 
 /// Makes the ChatGPT request and returns the response
-fn query_gpt(args: &config::CLIArgs, config: &config::Config) -> anyhow::Result<CompletionResponse> {
+fn query_gpt(args: Arc<config::CLIArgs>, config: Arc<config::Config>) -> anyhow::Result<CompletionResponse> {
   let client = create_client(&config.api_key)?;
   let body = serde_json::json!({
     "model": args.model.api_model(),
@@ -86,13 +103,53 @@ fn calculate_cost(model: &config::Model, usage: &Usage) -> f64 {
   return cost;
 }
 
+/// Creates the loading spinner
+fn create_spinner() -> anyhow::Result<ProgressBar> {
+  let spinner = ProgressBar::new_spinner();
+  spinner.set_style(
+    ProgressStyle::default_spinner()
+      .tick_chars("🌍🌎🌏")
+      .template("{msg} {spinner:.green}")
+      .with_context(|| format!("Failed to set template"))? 
+  );
+  let mut rng = rand::thread_rng();
+  let rand_idx = rng.gen_range(0..LOADING_MESSAGES.len());
+  let rand_msg = LOADING_MESSAGES[rand_idx];
+  spinner.set_message(rand_msg);
+  Ok(spinner)
+}
+ 
 /// Runs the CLI
-pub fn run(args: &config::CLIArgs, config: &config::Config) -> anyhow::Result<()> {
-  let response = query_gpt(args, config)?;
-  println!("{}", response.choices[0].message.content);
-  println!("");
-  if args.cost {
-    println!("{}: ${:.6}", "Cost".green(), calculate_cost(&args.model, &response.usage));
+pub fn run(args: Arc<config::CLIArgs>, config: Arc<config::Config>) -> anyhow::Result<()> {
+  let spinner = create_spinner()?;
+  let args_clone = Arc::clone(&args);
+  let config_clone = Arc::clone(&config);
+  let handle = std::thread::spawn(move || {
+    let response = query_gpt(args_clone, config_clone).unwrap();
+    response
+  });
+
+  while !handle.is_finished() {
+    spinner.tick();
+    std::thread::sleep(std::time::Duration::from_millis(200));
   }
-  Ok(())
+
+  spinner.finish_and_clear();
+
+  match handle.join() {
+    Ok(response) => {
+      // println!("response...");
+      println!("{}", format!("Response from {}", args.model.api_model().magenta()).cyan());
+      println!("");
+      println!("{}", response.choices[0].message.content);
+      println!("");
+      if args.cost {
+        println!("{}: ${:.6}", "Cost".green(), calculate_cost(&args.model, &response.usage));
+      }
+      Ok(())
+    },
+    Err(_) => {
+      return Err(anyhow::anyhow!("Thread failed to execute!"))
+    }
+  }
 }
