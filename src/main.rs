@@ -1,3 +1,4 @@
+use anyhow::Context;
 use pgpt::config;
 
 
@@ -8,6 +9,7 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
     let config = config::Config::load_config();
-    pgpt::run(&args, &config)?;
+    pgpt::run(&args, &config)
+        .with_context(|| format!("Failed to make query"))?;
     Ok(())
 }

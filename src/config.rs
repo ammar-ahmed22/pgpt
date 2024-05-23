@@ -3,6 +3,55 @@ use clap::Parser;
 use crate::encryption::{ decrypt, encrypt, nonce };
 use anyhow::Context;
 use colored::*;
+use std::str::FromStr;
+
+#[derive(Debug, Parser, Clone, serde::Serialize)]
+pub enum Model {
+  GPT3,
+  GPT4,
+  GPT4o
+}
+
+impl FromStr for Model {
+  type Err = String;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+      match s {
+        "gpt-3" => Ok(Model::GPT3),
+        "gpt-4" => Ok(Model::GPT4),
+        "gpt-4o" => Ok(Model::GPT4o),
+        _ => Err(format!("'{}' is not a valid model", s))
+      }
+  }
+}
+
+impl Model {
+  pub fn api_model(&self) -> String {
+    match self {
+      Self::GPT3 => String::from("gpt-3.5-turbo"),
+      Self::GPT4 => String::from("gpt-4-turbo"),
+      Self::GPT4o => String::from("gpt-4o")
+    }
+  }
+
+  /// Returns the price ($) per token for the model input
+  pub fn prompt_cost(&self) -> f64 {
+    match self {
+      Self::GPT3 => 0.5 / 1e6,
+      Self::GPT4 => 10.0 / 1e6,
+      Self::GPT4o => 5.0 / 1e6
+    }
+  }
+
+  /// Returns the price ($) per token for the model output
+  pub fn completion_cost(&self) -> f64 {
+    match self {
+      Self::GPT3 => 1.5 / 1e6,
+      Self::GPT4 => 30.0 / 1e6,
+      Self::GPT4o => 15.0 / 1e6
+    }
+  }
+}
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -10,9 +59,10 @@ struct Args {
   #[arg(required = false)]
   query: Vec<String>,
 
-  /// The model to use (optional) ['gpt-3.5-turbo']
-  #[arg(long, short)] 
-  model: Option<String>,
+  /// ['gpt-3'] The model to use (optional) 
+  /// [options = 'gpt-3', 'gpt-4', 'gpt-4o']
+  #[arg(long, short, value_enum)] 
+  model: Option<Model>,
 
   /// Remove local config including OpenAI API key
   #[arg(long)]
@@ -21,7 +71,7 @@ struct Args {
 
 #[derive(serde::Serialize, Debug)]
 pub struct CLIArgs {
-  pub model: String,
+  pub model: Model,
   pub clear: bool,
   pub query: String,
 }
@@ -45,7 +95,7 @@ impl Config {
     let query = args.query.join(" ");
     let model = match args.model {
       Some(m) => m,
-      None => String::from("gpt-3.5-turbo")
+      None => Model::GPT3
     };
 
     CLIArgs {
