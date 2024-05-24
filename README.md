@@ -2,6 +2,15 @@
   <h1>Pretty GPT</h1>
   <p>Ask ChatGPT anything directly from the terminal with pretty markdown rendering!</p>
   <p>Inspired by <a href="https://github.com/rigwild/shell-gpt-rs">shell-gpt-rs</a></p>
+  <p>
+    <a href="https://crates.io/crates/pgpt">
+      <img src="https://img.shields.io/crates/v/pgpt" />
+    </a>
+
+    <a href="https://crates.io/crates/pgpt">
+      <img src="https://img.shields.io/crates/d/pgpt" />
+    </a>
+  </p>
 </div> 
 
 ## Demo
