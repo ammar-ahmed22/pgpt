@@ -6,7 +6,6 @@
     <a href="https://crates.io/crates/pgpt">
       <img src="https://img.shields.io/crates/v/pgpt" />
     </a>
-
     <a href="https://crates.io/crates/pgpt">
       <img src="https://img.shields.io/crates/d/pgpt" />
     </a>
