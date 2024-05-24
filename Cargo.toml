@@ -2,6 +2,13 @@
 name = "pgpt"
 version = "0.1.0"
 edition = "2021"
+authors = ["Ammar Ahmed <ammar.ahmed2203@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/ammar-ahmed22/pgpt"
+readme = "README.md"
+description = "A CLI to ask ChatGPT anything with pretty markdown rendering (Pretty GPT)"
+keywords = ["cli", "gpt", "ai", "chatgpt", "markdown"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,3 +26,7 @@ serde = { version = "1.0.202", features = ["derive"] }
 serde_json = "1.0.117"
 termimad = "0.29.2"
 whoami = "1.5.1"
+
+[[bin]]
+name = "pgpt"
+path = "src/main.rs"
