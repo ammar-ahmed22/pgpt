@@ -54,6 +54,12 @@ impl Model {
 }
 
 #[derive(Debug, Parser)]
+#[command(
+  name = "pgpt",
+  about = "Ask ChatGPT anything directly from the terminal with pretty markdown rendering!",
+  version = env!("CARGO_PKG_VERSION"),
+  author = "Ammar Ahmed <ammar.ahmed2203@gmail.com>"
+)]
 struct Args {
   /// The query to ask ChatGPT
   #[arg(required = false)]
@@ -64,7 +70,7 @@ struct Args {
   #[arg(long, short, value_enum)] 
   model: Option<Model>,
 
-  /// Remove local config including OpenAI API key
+  /// Clear local config including OpenAI API key
   #[arg(long)]
   clear: bool,
 
