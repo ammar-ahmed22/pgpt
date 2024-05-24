@@ -16,7 +16,7 @@ pgpt --help
 
 ### Source
 ```bash
-git clone  <LINK>
+git clone https://github.com/ammar-ahmed22/pgpt.git
 cd pgpt
 cargo install --path .
 ```
@@ -57,7 +57,7 @@ ChatGPT API pricing is dependent on the model with different costs for the diffe
 
 Costs are based on "tokens" used for input/output. Each "token" roughly translates to 4 characters of text.
 
-You can see pricing details [here](https://platform.openai.com/pricing)
+You can see pricing details [here](https://openai.com/api/pricing/)
 
 ### `--clear`
 Clears the local config including the OpenAI API key
