@@ -3,10 +3,8 @@ pub mod utils;
 
 use crate::config::model::Model;
 use crate::encryption::{encrypt, nonce};
-use anyhow::Context;
 use clap::Parser;
 use colored::*;
-use std::io::Write;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -41,6 +39,10 @@ pub enum Commands {
         /// [0] The number of previous prompt/response pairs to include in the query. Cannot exceed `cache-length` setting in configuration. (optional)
         #[arg(long, short)]
         context: Option<usize>,
+
+        /// Display the context that is being passed with the query
+        #[arg(long, short)]
+        show_context: bool
     },
     /// Configure settings for using the CLI
     Config {
@@ -117,14 +119,7 @@ impl ConfigSetters {
                 config.context = *value;
             }
         };
-        let config_path = utils::config_file_path();
-        // TODO write helper function save_config
-        let mut file =
-            std::fs::File::create(&config_path).with_context(|| format!("Could not open file"))?;
-        let config_str = serde_json::to_string(&config)?;
-        file.write(&config_str.as_bytes())
-            .with_context(|| format!("Could not write to file"))?;
-        println!("{}", "Updated config successfully!".green());
+        utils::save_config_file(&config)?;
         Ok(())
     }
 }
@@ -181,12 +176,11 @@ impl ConfigSettings {
             Self::Cache => {
                 let cache = utils::load_cache()?;
                 println!("{}:", "Cache".cyan());
-                println!("");
                 for (i, value) in cache.iter().enumerate() {
-                    println!("Query #{}", i + 1);
-                    println!("{}: {}", "Prompt".magenta(), value.prompt);
-                    println!("{}:\n{}", "Response".magenta(), value.response);
-                    println!("");
+                    println!("{}", format!("Cached {}/{}", i + 1, cache.len()).cyan());
+                    println!("{}: {}", "You said".yellow(), value.prompt);
+                    println!("{}:\n{}", "GPT said".magenta(), value.response);
+                    println!("")
                 }
             }
             Self::CacheLength => {
@@ -196,11 +190,12 @@ impl ConfigSettings {
                 println!("{}: {}", "Context".cyan(), config.context);
             }
             Self::All => {
+                // let cache = utils::load_cache()?;
                 println!("{}: {}", "Model".cyan(), config.model);
                 println!("{}: {}", "API Key (encrypted)".cyan(), enc_str);
                 println!("{}: {}", "Cache Length".cyan(), config.cache_length);
                 println!("{}: {}", "Context".cyan(), config.context);
-                // TODO show cache
+                println!("To display cache, run `{}`", "pgpt config show cache".cyan());
             }
         };
         Ok(())
@@ -212,6 +207,7 @@ pub struct QueryArgs {
     pub query: String,
     pub cost: bool,
     pub context: Option<usize>,
+    pub show_context: bool
 }
 
 pub enum ParsedArgs {
@@ -258,6 +254,7 @@ impl Config {
                 cost,
                 model,
                 context,
+                show_context
             } => {
                 let query = query.join(" ");
                 // let context = context.unwrap_or(0);
@@ -266,6 +263,7 @@ impl Config {
                     model,
                     cost,
                     context,
+                    show_context
                 };
                 ParsedArgs::Query {
                     args: Arc::new(args),
@@ -295,7 +293,7 @@ pub struct ConfigJSON {
     pub context: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CacheValue {
     pub prompt: String,
     pub response: String,
