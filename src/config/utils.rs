@@ -21,6 +21,7 @@ pub fn register_config_file() -> anyhow::Result<ConfigJSON> {
     let config = ConfigJSON {
         model: String::from("gpt-3"),
         cache_length: 5,
+        context: 0,
     };
     println!(
         "Creating configuration file with default values at {}",

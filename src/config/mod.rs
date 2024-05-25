@@ -79,6 +79,8 @@ pub enum ConfigSetters {
     APIKey { value: String },
     /// The maximum number of prompt/response pairs to save in cache.
     CacheLength { value: usize },
+    /// The default number of prompt/response pairs to send as context with the query
+    Context { value: usize },
 }
 
 impl ConfigSetters {
@@ -106,8 +108,17 @@ impl ConfigSetters {
                 println!("Setting {} to {}", "model".cyan(), str_model.cyan());
                 config.model = str_model;
             }
+            Self::Context { value } => {
+                println!(
+                    "Setting {} to {}",
+                    "context".cyan(),
+                    value.to_string().cyan()
+                );
+                config.context = *value;
+            }
         };
         let config_path = utils::config_file_path();
+        // TODO write helper function save_config
         let mut file =
             std::fs::File::create(&config_path).with_context(|| format!("Could not open file"))?;
         let config_str = serde_json::to_string(&config)?;
@@ -145,6 +156,8 @@ pub enum ConfigSettings {
     CacheLength,
     /// All of the previously saved prompt/response pairs
     Cache,
+    /// The default number of prompt/response pairs to send with the query
+    Context,
     /// All of the configuration values.
     All,
 }
@@ -179,10 +192,15 @@ impl ConfigSettings {
             Self::CacheLength => {
                 println!("{}: {}", "Cache Length".cyan(), config.cache_length);
             }
+            Self::Context => {
+                println!("{}: {}", "Context".cyan(), config.context);
+            }
             Self::All => {
                 println!("{}: {}", "Model".cyan(), config.model);
                 println!("{}: {}", "API Key (encrypted)".cyan(), enc_str);
                 println!("{}: {}", "Cache Length".cyan(), config.cache_length);
+                println!("{}: {}", "Context".cyan(), config.context);
+                // TODO show cache
             }
         };
         Ok(())
@@ -193,7 +211,7 @@ pub struct QueryArgs {
     pub model: Option<Model>,
     pub query: String,
     pub cost: bool,
-    pub context: usize,
+    pub context: Option<usize>,
 }
 
 pub enum ParsedArgs {
@@ -206,6 +224,7 @@ pub struct Config {
     pub api_key: String,
     pub model: Model,
     pub cache_length: usize,
+    pub context: usize,
 }
 
 impl Config {
@@ -225,6 +244,7 @@ impl Config {
             api_key,
             model,
             cache_length: config_json.cache_length,
+            context: config_json.context,
         };
         Ok(Arc::new(config))
     }
@@ -240,7 +260,7 @@ impl Config {
                 context,
             } => {
                 let query = query.join(" ");
-                let context = context.unwrap_or(0);
+                // let context = context.unwrap_or(0);
                 let args = QueryArgs {
                     query,
                     model,
@@ -272,6 +292,7 @@ impl Config {
 pub struct ConfigJSON {
     pub model: String,
     pub cache_length: usize,
+    pub context: usize,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

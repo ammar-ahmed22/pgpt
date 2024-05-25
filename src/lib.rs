@@ -78,11 +78,16 @@ pub fn run_query(args: Arc<config::QueryArgs>, config: Arc<config::Config>) -> a
 
         let cache = config::utils::load_cache()?;
 
+        let context = match &args_clone.context {
+            Some(ctx) => *ctx,
+            None => config_clone.context,
+        };
+
         // Adding cached messages up to context
-        let start = if &args_clone.context > &cache.len() {
+        let start = if context > cache.len() {
             0
         } else {
-            cache.len() - &args_clone.context
+            cache.len() - context
         };
         let relevant_cache = &cache[start..];
         for value in relevant_cache.iter() {
