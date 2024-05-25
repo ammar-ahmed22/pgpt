@@ -111,6 +111,15 @@ pub fn register_cache() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn save_cache(cache: Vec<CacheValue>) -> anyhow::Result<()> {
+    let cache_path = cache_file_path();
+    let mut file = std::fs::File::create(&cache_path)?;
+    let json_str = serde_json::to_string(&cache)?;
+    file.write(&json_str.as_bytes())?;
+    println!("{}", "Saved cache successfully!".green());
+    Ok(())
+}
+
 pub fn save_api_key(api_key: &str) -> anyhow::Result<()> {
     let config_path = api_file_path();
 

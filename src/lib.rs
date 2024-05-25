@@ -4,9 +4,11 @@ pub mod gpt;
 
 use anyhow::Context;
 use colored::*;
+use config::CacheValue;
 use gpt::{GPTClient, GPTQuery, GPTResponse, GPTRole};
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use termimad::crossterm::style::Color::*;
@@ -71,11 +73,48 @@ pub fn run_query(args: Arc<config::QueryArgs>, config: Arc<config::Config>) -> a
 
     let handle: JoinHandle<anyhow::Result<GPTResponse>> = std::thread::spawn(move || {
         let gpt = GPTClient::new(&config_clone.api_key)?;
-        let query = GPTQuery::builder()
-            .model(&model_clone)
-            .message(GPTRole::User, &args_clone.query)
-            .build()?;
+        let mut query_builder = GPTQuery::builder();
+        query_builder.model(&model_clone);
+
+        let cache = config::utils::load_cache()?;
+
+        // Adding cached messages up to context
+        let start = if &args_clone.context > &cache.len() {
+            0
+        } else {
+            cache.len() - &args_clone.context
+        };
+        let relevant_cache = &cache[start..];
+        for value in relevant_cache.iter() {
+            query_builder.message(GPTRole::User, &value.prompt);
+            query_builder.message(GPTRole::System, &value.response);
+        }
+
+        // Adding query
+        query_builder.message(GPTRole::User, &args_clone.query);
+
+        let query = query_builder.build()?;
+
+        // TODO remove this after testing complete
+        println!("Sending query:\n{:?}", query);
         let response = gpt.query(&query)?;
+
+        let mut queue_cache: VecDeque<CacheValue> = VecDeque::from(cache);
+        let cache_value = CacheValue {
+            prompt: args_clone.query.to_string(),
+            response: response.choices[0].message.content.to_string(),
+        };
+        queue_cache.push_back(cache_value);
+
+        if queue_cache.len() > config_clone.cache_length {
+            let diff = queue_cache.len() - config_clone.cache_length;
+            for _ in 0..diff {
+                queue_cache.pop_front();
+            }
+        }
+
+        let updated_cache = Vec::from(queue_cache);
+        config::utils::save_cache(updated_cache)?;
         Ok(response)
     });
 

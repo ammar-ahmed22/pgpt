@@ -40,7 +40,7 @@ pub enum Commands {
 
         /// [0] The number of previous prompt/response pairs to include in the query. Cannot exceed `cache-length` setting in configuration. (optional)
         #[arg(long, short)]
-        context: Option<i32>,
+        context: Option<usize>,
     },
     /// Configure settings for using the CLI
     Config {
@@ -78,7 +78,7 @@ pub enum ConfigSetters {
     /// The API key for OpenAI. Create one at https://platform.openai.com/api-keys
     APIKey { value: String },
     /// The maximum number of prompt/response pairs to save in cache.
-    CacheLength { value: i32 },
+    CacheLength { value: usize },
 }
 
 impl ConfigSetters {
@@ -193,7 +193,7 @@ pub struct QueryArgs {
     pub model: Option<Model>,
     pub query: String,
     pub cost: bool,
-    pub context: i32,
+    pub context: usize,
 }
 
 pub enum ParsedArgs {
@@ -205,7 +205,7 @@ pub enum ParsedArgs {
 pub struct Config {
     pub api_key: String,
     pub model: Model,
-    pub cache_length: i32,
+    pub cache_length: usize,
 }
 
 impl Config {
@@ -271,7 +271,7 @@ impl Config {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ConfigJSON {
     pub model: String,
-    pub cache_length: i32,
+    pub cache_length: usize,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
