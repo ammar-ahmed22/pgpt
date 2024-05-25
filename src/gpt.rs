@@ -131,9 +131,10 @@ pub struct GPTClient {
 impl GPTClient {
     fn create_http_client(api_key: &str) -> anyhow::Result<Client> {
         let auth_val = format!("Bearer {}", api_key);
+        let user_agent = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(USER_AGENT, HeaderValue::from_static("pgpt/0.1.0"));
+        headers.insert(USER_AGENT, HeaderValue::from_str(&user_agent)?);
         headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_val)?);
         let client = Client::builder().default_headers(headers).build()?;
         Ok(client)
