@@ -71,59 +71,67 @@ pub fn run_query(args: Arc<config::QueryArgs>, config: Arc<config::Config>) -> a
     };
     let model_clone = Arc::new(model.clone());
 
-    let handle: JoinHandle<anyhow::Result<(GPTResponse, Vec<CacheValue>)>> = std::thread::spawn(move || {
-        let gpt = GPTClient::new(&config_clone.api_key)?;
-        let mut query_builder = GPTQuery::builder();
-        query_builder.model(&model_clone);
+    let handle: JoinHandle<anyhow::Result<(GPTResponse, Vec<CacheValue>)>> =
+        std::thread::spawn(move || {
+            let gpt = GPTClient::new(&config_clone.api_key)?;
+            let mut query_builder = GPTQuery::builder();
+            query_builder.model(&model_clone);
 
-        let cache = config::utils::load_cache()?;
+            let cache = config::utils::load_cache()?;
 
-        let context = match &args_clone.context {
-            Some(ctx) => *ctx,
-            None => config_clone.context,
-        };
+            let context = match &args_clone.context {
+                Some(ctx) => *ctx,
+                None => config_clone.context,
+            };
 
-        // Adding cached messages up to context
-        let start = if context > cache.len() {
-            0
-        } else {
-            cache.len() - context
-        };
-        let context_messages = Vec::from(&cache[start..]);
-        for message in context_messages.iter() {
-            query_builder.message(GPTRole::User, &message.prompt);
-            query_builder.message(GPTRole::System, &message.response);
-        }
-
-        // Adding query
-        query_builder.message(GPTRole::User, &args_clone.query);
-
-        let query = query_builder.build()?;
-
-        // TODO remove this after testing complete
-        // println!("Sending query:\n{:?}", query);
-        let response = gpt.query(&query)?;
-
-        let mut queue_cache: VecDeque<CacheValue> = VecDeque::from(context_messages.clone());
-        let cache_value = CacheValue {
-            prompt: args_clone.query.to_string(),
-            response: response.choices[0].message.content.to_string(),
-        };
-        queue_cache.push_back(cache_value);
-
-        if queue_cache.len() > config_clone.cache_length {
-            let diff = queue_cache.len() - config_clone.cache_length;
-            for _ in 0..diff {
-                queue_cache.pop_front();
+            // Adding cached messages up to context
+            let start = if context > cache.len() {
+                0
+            } else {
+                cache.len() - context
+            };
+            let context_messages = Vec::from(&cache[start..]);
+            for message in context_messages.iter() {
+                query_builder.message(GPTRole::User, &message.prompt);
+                query_builder.message(GPTRole::System, &message.response);
             }
-        }
 
-        let updated_cache = Vec::from(queue_cache);
-        let cache_size = updated_cache.len();
-        config::utils::save_cache(updated_cache)?;
-        println!("{}", format!("Cache capacity {}/{}", cache_size, config_clone.cache_length).green());
-        Ok((response, context_messages))
-    });
+            // Adding query
+            query_builder.message(GPTRole::User, &args_clone.query);
+
+            let query = query_builder.build()?;
+
+            // TODO remove this after testing complete
+            // println!("Sending query:\n{:?}", query);
+            let response = gpt.query(&query)?;
+
+            let mut queue_cache: VecDeque<CacheValue> = VecDeque::from(context_messages.clone());
+            let cache_value = CacheValue {
+                prompt: args_clone.query.to_string(),
+                response: response.choices[0].message.content.to_string(),
+            };
+            queue_cache.push_back(cache_value);
+
+            if queue_cache.len() > config_clone.cache_length {
+                let diff = queue_cache.len() - config_clone.cache_length;
+                for _ in 0..diff {
+                    queue_cache.pop_front();
+                }
+            }
+
+            let updated_cache = Vec::from(queue_cache);
+            let cache_size = updated_cache.len();
+            config::utils::save_cache(updated_cache)?;
+            println!(
+                "{}",
+                format!(
+                    "Cache capacity {}/{}",
+                    cache_size, config_clone.cache_length
+                )
+                .green()
+            );
+            Ok((response, context_messages))
+        });
 
     while !handle.is_finished() {
         spinner.tick();
@@ -134,11 +142,15 @@ pub fn run_query(args: Arc<config::QueryArgs>, config: Arc<config::Config>) -> a
         Ok(result) => match result {
             Ok((response, context_messages)) => {
                 if args.show_context {
-                  for message in context_messages {
-                    println!("{}:\n{}", "You said".yellow(), message.prompt);
-                    println!("{}:\n{}", "GPT said".magenta(), skin.term_text(&message.response))
-                  }
-                  println!("{}:\n{}", "You said".yellow(), args.query);
+                    for message in context_messages {
+                        println!("{}:\n{}", "You said".yellow(), message.prompt);
+                        println!(
+                            "{}:\n{}",
+                            "GPT said".magenta(),
+                            skin.term_text(&message.response)
+                        )
+                    }
+                    println!("{}:\n{}", "You said".yellow(), args.query);
                 }
                 println!("");
                 println!(

@@ -37,13 +37,13 @@ pub fn register_config_file() -> anyhow::Result<ConfigJSON> {
 }
 
 pub fn save_config_file(config: &ConfigJSON) -> anyhow::Result<()> {
-  let config_path = config_file_path();
-  let mut file = std::fs::File::create(&config_path)
-    .with_context(|| format!("Could not open config file"))?;
-  let config_str = serde_json::to_string(config)?;
-  file.write(&config_str.as_bytes())?;
-  println!("{}", "Saved config successfully!".green());
-  Ok(())
+    let config_path = config_file_path();
+    let mut file = std::fs::File::create(&config_path)
+        .with_context(|| format!("Could not open config file"))?;
+    let config_str = serde_json::to_string(config)?;
+    file.write(&config_str.as_bytes())?;
+    println!("{}", "Saved config successfully!".green());
+    Ok(())
 }
 
 /// Attempts to load API key from env variable or config file

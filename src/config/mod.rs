@@ -42,7 +42,7 @@ pub enum Commands {
 
         /// Display the context that is being passed with the query
         #[arg(long, short)]
-        show_context: bool
+        show_context: bool,
     },
     /// Configure settings for using the CLI
     Config {
@@ -195,7 +195,10 @@ impl ConfigSettings {
                 println!("{}: {}", "API Key (encrypted)".cyan(), enc_str);
                 println!("{}: {}", "Cache Length".cyan(), config.cache_length);
                 println!("{}: {}", "Context".cyan(), config.context);
-                println!("To display cache, run `{}`", "pgpt config show cache".cyan());
+                println!(
+                    "To display cache, run `{}`",
+                    "pgpt config show cache".cyan()
+                );
             }
         };
         Ok(())
@@ -207,7 +210,7 @@ pub struct QueryArgs {
     pub query: String,
     pub cost: bool,
     pub context: Option<usize>,
-    pub show_context: bool
+    pub show_context: bool,
 }
 
 pub enum ParsedArgs {
@@ -254,7 +257,7 @@ impl Config {
                 cost,
                 model,
                 context,
-                show_context
+                show_context,
             } => {
                 let query = query.join(" ");
                 // let context = context.unwrap_or(0);
@@ -263,7 +266,7 @@ impl Config {
                     model,
                     cost,
                     context,
-                    show_context
+                    show_context,
                 };
                 ParsedArgs::Query {
                     args: Arc::new(args),
