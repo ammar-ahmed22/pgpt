@@ -1,19 +1,13 @@
 use anyhow::Context;
 use pgpt::config;
-use std::sync::Arc;
 
 fn main() -> anyhow::Result<()> {
-    // TODO refactor to make parse_args return Arc
-    let args = config::Config::parse_args();
-    let args_arc = Arc::new(args);
-    if args_arc.clear {
-        config::Config::clear_config()?;
-        return Ok(());
+    match config::Config::parse_args() {
+        config::ParsedArgs::Query { args } => {
+            let config =
+                config::Config::load_config().with_context(|| format!("Failed to load config."))?;
+            pgpt::run_query(args, config)
+        }
+        config::ParsedArgs::Config { config } => config::Config::handle_config(&config),
     }
-    // TODO refactor to make load_config return Arc
-    let config = config::Config::load_config();
-    let config_arc = Arc::new(config);
-    pgpt::run(args_arc, config_arc)
-        .with_context(|| format!("Failed to make query"))?;
-    Ok(())
 }
